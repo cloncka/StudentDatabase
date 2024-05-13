@@ -1,0 +1,168 @@
+<?php
+$connection_error = false;
+
+$connection_error_message = "";
+
+//TODO: once data is implemented, change to host info
+$con = @mysqli_connect (hostname: "localhost", username: "cs370", password: "group4", database: "csproject" );
+
+If (mysqli_connect_errno() ){
+
+    $connection_error = true;
+    $connection_error_message = "Failed to connect to MySQL: "
+        .mysqli_connect_error() ;
+
+}
+
+
+Function output_error ( $title, $error): void {
+
+    Echo "<span style = ‘color: red;’>\n" ;
+    Echo "<h2> . $title </h2>\n" ;
+    Echo "<h4> . $error  </h4>\n" ;
+    Echo "</span>";
+
+
+}
+
+?>
+
+
+
+<html>
+<head>
+    //TODO: change this to report type
+    <link rel="stylesheet" href="style.css">
+    <title> Course Data Report </title>
+
+</head>
+
+<style>
+    //Uncomment this once a boostrap program is implemented
+    /*
+        .pizzaDataTable{ font-family: Consolas; monospace;
+            font-size: larger; border-spacing: 0; }
+        .pizzaDataHeaderRow td { font-weight: bold; padding-right: 20px; }
+        .pizzaDataRow td {border-bottom: 1px solid #888888; padding-left: 10px; }
+        .pizzaDataDetailsCell { padding-left: 10px; font-size: medium; }
+        .pizzaDataTable tr:nth-child(2n+2) {background-color: #cccccc;}
+    */
+</style>
+
+<body>
+<?php include "navbar.phtml" ?>
+//Again, change this to report type
+<h1>Course Report </h1>
+
+<?php if ($connection_error ) {
+
+    output_error( title: "Database connection failure!", error: $connection_error_message );
+}else{
+
+//TODO: once a table is chosen, change this info to the info of the table.
+    //for example, add in firstname for student.
+    Function output_table_open():void {
+        Echo "<table class=’CourseDataTable’>\n" ;
+        Echo "<tr class = ‘CourseDataHeaderRow’>\n" ;
+        Echo " <th>CourseID</th>\n" ;
+        Echo " <th>CourseName</th>\n";
+        Echo " </tr>\n ";
+
+    }
+
+    Function output_table_close(): void{
+        Echo "</table>\n" ;
+    }
+
+//TODO: change these to be the same as the table above
+    Function output_Course_row( $CourseID, $CourseName): void {
+
+        Echo "<tr class = ‘CourseDataRow’>\n" ;
+        Echo "       <th>" . $CourseID . "</th>\n" ;
+        Echo "       <th>" . $CourseName . " </th>\n";
+        Echo "</tr>\n" ;
+    }
+
+
+
+//TODO: change these to be the 2nd table in the report
+    Function Output_Course_Info( $courses, $students): void{
+        $students_str = "None" ;
+        $courses_str = "None" ;
+        If (sizeof( $courses ) > 0){
+            $courses_str = implode ( separator: ", ", array: $courses ) ;
+        }
+        If (sizeof($students) > 0 ){
+            $students_str = implode ( separator: ",   ", array: $students ) ;
+        }
+
+        Echo "<tr>\n";
+        Echo "   <td colspan= ‘1’ class=’DepartmentDatacell’\n";
+        Echo "Course:" . $courses_str . " <br/>\n" ;
+        Echo "Students: " .$students_str . "<br/>\n";
+        Echo "</td>\n" ;
+        Echo "</tr>\n" ;
+
+    }
+
+
+
+
+    //$query -> "command seen below" . " put a space between the start" . " use periods to separate lines ";
+
+    $query = " SELECT * FROM  students t0 INNER JOIN studentcourselist t1 ON 
+     t0.StudentID = t1.StudentID INNER JOIN courses t2 ON t2.CourseID = t0.CourseID ";
+    $result = mysqli_query ( $con, $query );
+
+    If ( ! $result) {
+        If (mysqli_errno ($con)) {
+            Output_error (title: "Data retrieval failure!", error: mysqli_error($con));
+
+        }else{
+            Echo "No data found!";
+        }
+
+    } else {
+        output_table_open();
+        $CourseID = null;
+        $courses = array();
+        $students = array();;
+        While ($row = $result->fetch_array()){
+            if( $CourseID != $row [ "CourseID" ]){
+                If ($CourseID != null ) {
+                    Output_Course_Info($courses, $students) ;
+                }
+                Output_Student_Row ( $row ["CourseID"], $row ["CourseName"]);
+
+
+                $courses = array () ;
+                $students = array() ;
+
+            }
+//TODO: change these to match the data being imported. You just need to change the ""
+            //unless more is being added.
+            If (! in_array($row[ "CourseID" ], $courses )){
+                $courses[] = $row ["CourseID"] ;
+            }
+
+            If (!in_array ($row ["Lname" ], $students ))
+                $students[] = $row ["Lname"] ;
+
+            $CourseID = $row [ "CourseID" ];
+
+        }
+        If ($CourseID != null ) {
+            Output_Course_Info ($courses, $students) ;
+        }
+
+        output_table_close() ;
+    }
+
+}
+
+?>
+
+</body>
+</html>
+
+

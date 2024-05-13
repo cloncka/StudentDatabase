@@ -1,0 +1,163 @@
+<?php
+$import_attempted = false;
+$import_succeeded = false;
+if( $_SERVER[ "REQUEST_METHOD"] = "POST" ){
+    $import_attempted = true;
+
+    $con = @mysqli_connect( hostname:"localhost", username:"cs370",
+        password:"group4", database:"csproject");
+
+    if( mysqli_connect_errno() ) {
+        $import_error_message = "Failed to connect to MySQL: "
+            . mysqli_connect_error() ;
+    }else{
+
+        Try{
+            $contents = file_get_contents( $_FILES [ "ImportFile"] [ "tmp_name"]);
+            $lines = explode ( separator: "\n", string: $contents ) ; //$contents missing here
+            $updated = 0;
+            $inserted = 0;
+            Foreach ( $lines as $line ){
+                $parsed_csv_line = str_getcsv ( $line ) ;
+                //TODO: do something with the parsed data
+                $CourseIDC = $parsed_csv_line[0];
+                $CourseName = $parsed_csv_line[1];
+                $Location = $parsed_csv_line[2];
+                $MeetDay = $parsed_csv_line[3];
+                $MeetTime = $parsed_csv_line[4];
+
+                $AssignmentIDA = $parsed_csv_line[5];
+                $AssignmentName = $parsed_csv_line[6];
+                $CourseIDA = $parsed_csv_line[7];
+                $AssignmentType = $parsed_csv_line[8];
+                $AssignmentDate = $parsed_csv_line[9];
+                $DueDate = $parsed_csv_line[10];
+                $Grade = $parsed_csv_line[11];
+
+                $AssignmentIDG = $parsed_csv_line[12];
+                $CourseIDG = $parsed_csv_line[13];
+                $Grades = $parsed_csv_line[14];
+                $Percents = $parsed_csv_line[15];
+
+
+                $query1 = "SELECT CourseID FROM courses WHERE CourseID = '" . $CourseIDC . "'";
+
+                $check1 = mysqli_query($con, $query1);
+
+
+                if($check1->num_rows > 0){
+
+                    mysqli_query($con, "UPDATE courses SET CourseName = '" . $CourseName . "', 
+                    Location =  '" . $Location . "', MeetDay =  '" . $MeetDay . "', MeetTime = '" . $MeetTime .
+                        "' Where CourseID = '" . $CourseIDC . "'");
+                    $updated++;
+                }else{
+                    mysqli_query($con, "INSERT INTO courses (CourseID, CourseName, Location, MeetDay, MeetTime)
+                    VALUES ('". $CourseIDC . "', '" . $CourseName . "', '" . $Location . "', '"
+                        . $MeetDay . "', '" . $MeetTime . "')");
+                    $inserted++;
+                }
+
+                $query2 = "SELECT AssignmentID FROM assignments WHERE AssignmentID = '" . $AssignmentIDA . "' AND 
+                CourseID = '" . $CourseIDC ."'";
+
+                $check2 = mysqli_query($con, $query2);
+
+                if($check2->num_rows > 0){
+                    mysqli_query($con, "UPDATE assignments SET AssignmentName = '" . $AssignmentName . "', 
+                    AssignmentType = '" . $AssignmentType. "', AssignmentDate = '" . $AssignmentDate . "', 
+                    DueDate = '" . $DueDate . "', Grade = '" . $Grade . "' WHERE CourseID = '" . $CourseIDA . "' AND 
+                    AssignmentID = '" . $AssignmentIDA . "'" );
+                    $updated++;
+                }else{
+                    mysqli_query($con, "INSERT INTO assignments (AssignmentID, AssignmentName, CourseID, AssignmentType, 
+                         AssignmentDate, DueDate, Grade)
+                    VALUES ('". $AssignmentIDA . "', '" . $AssignmentName . "', '" . $CourseIDA . "', '" .$AssignmentType
+                        . "', '" . $AssignmentDate . "', '" . $DueDate . "', '" . $Grade.  "')");
+                    $inserted++;
+                }
+
+                $query3 = "SELECT CourseID FROM coursegrades  WHERE CourseID = '" . $CourseIDG . "'
+            AND AssignmentID = '" . $AssignmentIDG . "'";
+
+                $check3 = mysqli_query($con, $query3);
+
+                if($check3->num_rows > 0){
+
+                    mysqli_query($con, "UPDATE coursegrades SET Grades = '" . $Grades . "', Percents = '" . $Percents  .
+                        "' WHERE CourseID = '" . $CourseIDG . "' AND AssignmentID = '" . $AssignmentIDG . "'");
+                    $updated++;
+                }else{
+                    mysqli_query($con, "INSERT INTO coursegrades (CourseID, AssignmentID, Grades, Percents)
+                    VALUES ('". $CourseIDG . "', '" . $AssignmentIDG . "', '" . $Grades . "', '" . $Percents .  "')");
+                    $inserted++;
+                }
+
+
+
+
+            }
+            $import_succeeded = true ;
+
+
+        }
+        catch( Error $exception ){
+            $import_error_message = $exception->getMessage()
+                . "at: " . $exception->getFile()
+                . " (line ". $exception->getLine() . ") <br/>" ;
+        }
+
+    }
+}
+?>
+
+
+<html>
+<head>
+    <link rel="stylesheet" href="custom.css">
+    <title>Database Name Import</title>
+
+</head>
+
+<body>
+<?php include "navbar.phtml" ?>
+<h1>Student Data Import</h1>
+
+
+
+
+<?php
+if ($import_attempted) {
+    if ($import_succeeded) {
+        // if import succeeded, show success message
+        ?>
+        <h1><span style='color: green;'>Import Succeeded!</span></h1>
+        <p>
+            <?php echo "{$inserted} rows inserted, {$updated} rows updated"; ?>
+        </p>
+    <?php } else {
+        // if import failed, show error message
+        ?>
+        <h1><span style='color: red;'>Import Failed!</span></h1>
+        <span style='color: red;'>
+                <?php echo $import_error_message; ?>
+            </span>
+
+
+        <br /><br />
+    <?php }
+}
+?>
+
+
+
+<form method="post" enctype="multipart/form-data">
+    File: <input type="file" name="ImportFile"/>
+    <br/><br/>
+    <input type="submit" value="Upload Data"/>
+
+</form>
+
+</body>
+
+</html>
